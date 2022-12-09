@@ -8,11 +8,11 @@ public class GridControll : MonoBehaviour
     GameManager gm;
     public Tile[,] tiles;
     [HideInInspector] public Vector2Int dimenzije;
-    [SerializeField] bool isRotated45;
-    // public int[,] grid;
-    Vector2 _razlika;
     Tile _neighbourTile;
-
+    Transform _hitTileTransform;
+    Vector2 _razlika;
+    float dotX, dotY;
+    public bool isRotating;
 
     private void Awake()
     {
@@ -27,8 +27,6 @@ public class GridControll : MonoBehaviour
             Tile tl = transform.GetChild(i).GetComponent<Tile>();
             tiles[tl.pozicija.x, tl.pozicija.y] = tl;
         }
-
-
     }
 
 
@@ -38,29 +36,23 @@ public class GridControll : MonoBehaviour
         switch (fact)
         {
             case Faction.Ally:
-                if (isRotated45)
+                _hitTileTransform = tiles[tilePoz.x, tilePoz.y].transform;
+                _razlika = ((Vector2)bulletPoz.position - (Vector2)_hitTileTransform.position).normalized;
+                dotX = Vector2.Dot(_hitTileTransform.right, _razlika);
+                dotY = Vector2.Dot(_hitTileTransform.up, _razlika);
+                if (Mathf.Abs(dotX) > Mathf.Abs(dotY))
                 {
-                    bulletPoz.parent = transform;
-                    _razlika = bulletPoz.localPosition - tiles[tilePoz.x, tilePoz.y].transform.localPosition;
+                    _neighbourTile = tiles[tilePoz.x + (dotX > 0f ? 1 : -1), tilePoz.y];
                 }
                 else
                 {
-                    _razlika = (Vector2)bulletPoz.position - (Vector2)tiles[tilePoz.x, tilePoz.y].transform.position;
-                }
-
-                if (Mathf.Abs(_razlika.x) > Mathf.Abs(_razlika.y))
-                {
-                    _neighbourTile = tiles[tilePoz.x + (_razlika.x > 0f ? 1 : -1), tilePoz.y];
-                }
-                else
-                {
-                    _neighbourTile = tiles[tilePoz.x, tilePoz.y + (_razlika.y > 0f ? 1 : -1)];
+                    _neighbourTile = tiles[tilePoz.x, tilePoz.y + (dotY > 0f ? 1 : -1)];
                 }
 
                 if (_neighbourTile.CurrentState == TileState.Danger)
                 {
                     _neighbourTile.WrongTile();
-                    EventManager.LevelDoneWin("Wrong tile!", gm.postavke.level, false);
+                    EventManager.LevelDoneWin?.Invoke("Wrong tile!", gm.postavke.level, false);
                     return;
                 }
 
@@ -83,12 +75,9 @@ public class GridControll : MonoBehaviour
                         }
                     }
                 }
-                EventManager.LevelDoneWin("No more tiles, game over!", gm.postavke.level, false);
-
+                EventManager.LevelDoneWin?.Invoke("No more tiles, game over!", gm.postavke.level, false);
                 break;
         }
-
-
     }
     void CheckGameOverPlayerAction()
     {
@@ -106,12 +95,12 @@ public class GridControll : MonoBehaviour
         }
         if (gameWon)
         {
-            EventManager.LevelDoneWin("Level completed!", gm.postavke.level, true);
+            EventManager.LevelDoneWin?.Invoke("Level completed!", gm.postavke.level, true);
             return;
         }
 
-       // if (gm.levelManager.enemyWithCannonsCount > 0) return; ovdje je bug, ispraviti
-        gm.closedAreas.EnclosureCheck();
+        if (!isRotating && gm.levelManager.enemyWithCannonsCount <= 0) gm.closedAreas.EnclosureCheck();
+
 
     }
 }

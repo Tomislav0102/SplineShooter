@@ -47,7 +47,7 @@ public class Tile : MonoBehaviour
         set
         {
             _sectorOrdinal = value;
-            displaySektor.text = _sectorOrdinal.ToString();
+            if(displaySektor != null) displaySektor.text = _sectorOrdinal.ToString();
         }
     }
     bool _hasExit;
@@ -57,12 +57,13 @@ public class Tile : MonoBehaviour
         set
         {
             _hasExit = value;
-            displaySektor.color = _hasExit ? Color.blue : Color.red;
+            if (displaySektor != null) displaySektor.color = _hasExit ? Color.blue : Color.red;
         }
     }
     private void Awake()
     {
         _myTransform = transform;
+      //  displaySektor = _myTransform.GetChild(0).GetComponent<TextMeshPro>();
     }
     private void Start()
     {

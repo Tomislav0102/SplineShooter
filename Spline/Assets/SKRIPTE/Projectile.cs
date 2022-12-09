@@ -8,51 +8,66 @@ public class Projectile : MonoBehaviour
     GameManager gm;
     Transform _myTransform;
     Rigidbody2D _r2D;
-    float speed;
-    bool pomocniOneHit;
-    [HideInInspector] public Faction faction;
+    float _speed;
+    const float CONST_BASESPEED = 0.1f;
+    bool _pomocniOneHit;
+    /*[HideInInspector]*/ public Faction faction;
     [SerializeField] SpriteRenderer sprite;
+
     private void Awake()
     {
         gm = GameManager.gm;
         _myTransform = transform;
         _r2D = GetComponent<Rigidbody2D>();
     }
+
     private void OnEnable()
     {
         switch (faction)
         {
             case Faction.Ally:
-                speed = 10f;
+                _speed = CONST_BASESPEED * 2f;
                 sprite.color = gm.colAlly;
                 break;
             case Faction.Enemy:
-                speed = 5f;
+                _speed = CONST_BASESPEED;
                 sprite.color = gm.colEnemy;
                 break;
         }
-
-        _r2D.velocity = _myTransform.up * speed;
-        Invoke(nameof(End), 3f);
-        pomocniOneHit = true;
+        StartCoroutine(EnableContinuation());
+    }
+    IEnumerator EnableContinuation()
+    {
+        float startTime = CONST_BASESPEED / (_speed * 15f);
+        yield return new WaitForSeconds(startTime);
+        _pomocniOneHit = true;
+        yield return new WaitForSeconds(3f);
+        End();
     }
 
+    private void FixedUpdate()
+    {
+        _r2D.MovePosition(_myTransform.position + _speed * _myTransform.up);
+    }
 
     public void End()
     {
-        CancelInvoke();
-        _r2D.velocity = Vector2.zero;
+        StopAllCoroutines();
+        _pomocniOneHit = false;
         gameObject.SetActive(false);
     }
+
     IEnumerator ReflexijaPauza()
     {
+        _pomocniOneHit = false;
         yield return new WaitForSeconds(0.1f);
-        pomocniOneHit = true;
+        _pomocniOneHit = true;
     }
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (!pomocniOneHit) return;
-        pomocniOneHit = false;
+        if (!_pomocniOneHit) return;
+       // print(collision.name);
         if (collision.TryGetComponent(out Tile tl))
         {
             if (tl.CurrentState == TileState.Closed)
@@ -66,36 +81,36 @@ public class Projectile : MonoBehaviour
             {
                 case Faction.Ally:
                     string st = faction == Faction.Ally ? "You killed yourself!" : "Killed by enemy bullet...";
-                    EventManager.LevelDoneWin(st, gm.postavke.level, false);
+                    EventManager.LevelDoneWin?.Invoke(st, gm.postavke.level, false);
                     break;
                 case Faction.Enemy:
-                    // railCannon.IsActive = false;
-                    EventManager.EnemyDestroyed(railCannon.GetComponent<EnemyBehaviour>());
+                    EventManager.EnemyDestroyed?.Invoke(railCannon.GetComponent<EnemyBehaviour>());
                     break;
             }
         }
         else if (collision.TryGetComponent(out Projectile projectile))
         {
             if (faction != projectile.faction) projectile.End();
-            else
-            {
-                pomocniOneHit = true;
-                return;
-            }
+            else return;
         }
-        else if(collision.TryGetComponent(out Pickup pu) && faction == Faction.Ally)
+        else if (collision.TryGetComponent(out Pickup pu))
         {
-            pu.OnPickup();
+            pu.OnPickup(faction);
         }
-        else if (collision.CompareTag("Zrcalo"))
+        else if (collision.TryGetComponent(out Shield shield) && shield.fact != faction)
         {
-            Vector2 v2 = _myTransform.up;
-            _myTransform.up = Vector2.Reflect(v2, collision.transform.right);
-            _r2D.velocity = _myTransform.up * speed;
-            StartCoroutine(ReflexijaPauza());
-            return;
+            shield.End();
         }
-        else return;
+        else if (collision.CompareTag("Barrier"))
+        {
+            collision.gameObject.SetActive(false);
+        }
+        // else if (collision.CompareTag("Zrcalo"))
+        // {
+        //     _r2D.velocity = _speed * Vector2.Reflect(_myTransform.up, collision.transform.right);
+        //     StartCoroutine(ReflexijaPauza());
+        //     return;
+        // }
 
         End();
 

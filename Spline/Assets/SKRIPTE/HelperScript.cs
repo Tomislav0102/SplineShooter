@@ -43,7 +43,8 @@ namespace FirstCollection
     public enum MotionType
     {
         Rotation,
-        Translation
+        Translation,
+        RotateGroup
     }
     public enum ShootingMode
     {

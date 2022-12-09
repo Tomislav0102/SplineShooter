@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cecc3c8d66052814d9289a4dd396d964, type: 3}
   m_Name: postavke
   m_EditorClassIdentifier: 
-  level: 1
-  score: 400
+  level: 8
+  score: 0

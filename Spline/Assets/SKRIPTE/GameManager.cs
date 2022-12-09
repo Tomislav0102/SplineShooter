@@ -13,52 +13,23 @@ public class GameManager : EventManager
     public static GameManager gm;
     [HideInInspector] public GridControll gridControll;
     [HideInInspector] public LevelManager levelManager;
+    public Camera mainCam;
     public SO_postavke postavke;
-    public Transform playerTr, enemyTr;
-    readonly Vector3 faceIn = new Vector3(90f, 90f, 180f);
-    readonly Vector3 faceOut = new Vector3(90f, 180f, 90f);
     [HideInInspector] public PlayerControll playerControll;
     public Color colAlly;
     public Color colEnemy;
     public SplineContainer splineContainer;
-    //pickup
-    public GameObject fuelParent;
-    RectTransform fuelMeter;
-    readonly float fuel0pos = -191f;
-    public GameObject ammoParent;
-    TextMeshProUGUI ammoDisplay;
-    [SerializeField] TextMeshProUGUI pointsDisplay;
-    //canvas
-    [SerializeField] Transform canParent;
-    [HideInInspector] public GameObject[] canvases;
-    //pools
-    [SerializeField] Transform poolBullets;
-    Transform[] _bulletsTr;
-    Projectile[] _bullets;
-    GameObject[] _bulletsGo;
-    int _counterBullets;
 
-    int _points;
-
+    [Header("--CLASSES")]
+    public PoolManager poolManager;
+    public UImanager uimanager;
     public ClosedAreas closedAreas;
+
+
+    #region//INITIALIZATION
     private void Awake()
     {
         gm = this;
-        _bulletsTr = HelperScript.GetAllChildernByType<Transform>(poolBullets);
-        _bullets = HelperScript.GetAllChildernByType<Projectile>(poolBullets);
-        _bulletsGo = new GameObject[_bullets.Length];
-        for (int i = 0; i < _bullets.Length; i++)
-        {
-            _bulletsGo[i] = _bullets[i].gameObject;
-        }
-        fuelMeter = fuelParent.transform.GetChild(2).GetChild(0).GetComponent<RectTransform>();
-        ammoDisplay = ammoParent.GetComponent<TextMeshProUGUI>();
-        canvases = new GameObject[canParent.childCount];
-        for (int i = 0; i < canParent.childCount; i++)
-        {
-            canvases[i] = canParent.GetChild(i).gameObject;
-        }
-        playerControll = playerTr.GetComponent<PlayerControll>();
     }
 
     IEnumerator Start()
@@ -72,67 +43,31 @@ public class GameManager : EventManager
         {
             yield return null;
         }
-        EventManager.GameReady();
 
-        _points = postavke.score;
-        PointsMethod(0);
+        GameReady?.Invoke();
+
     }
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+        uimanager.btnNext.onClick.AddListener(Btn_NextLv);
+        uimanager.btnRestart.onClick.AddListener(Btn_Restart);
+        uimanager.btnQuit.onClick.AddListener(Btn_QuitToMain);
+    }
+    protected override void OnDisable()
+    {
+        base.OnDisable();
+        uimanager.btnNext.onClick.RemoveListener(Btn_NextLv);
+        uimanager.btnRestart.onClick.RemoveListener(Btn_Restart);
+        uimanager.btnQuit.onClick.RemoveListener(Btn_QuitToMain);
+    }
+
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
-    }
-    public void IniConnect(SplineContainer container, bool facingOutward, SplineAnimate pAnim, int fuel, int ammo, SplineAnimate eAnim, ShootingMode[] sm, float[] pocetnePozicije)
-    {
-        closedAreas = new ClosedAreas(gridControll.tiles);
-        splineContainer = container;
-        playerTr.parent = pAnim.transform;
-        playerTr.localPosition = Vector3.zero;
-        playerTr.localEulerAngles = facingOutward ? faceOut : faceIn;
-        pAnim.splineContainer = container;
-        pAnim.gameObject.SetActive(true);
-        StartCoroutine(playerTr.GetComponent<RailCannon>().Inicijalizacija(sm[0], pocetnePozicije[0]));
-
-        if (fuel <= 0)
-        {
-            playerTr.GetComponent<PlayerControll>().hasFuelFeature = false;
-            fuelParent.SetActive(false);
-        }
-        if (ammo > 0) playerTr.GetComponent<PlayerControll>().Ammo = ammo;
-        else
-        {
-            playerTr.GetComponent<PlayerControll>().hasAmmoFeature = false;
-            ammoParent.SetActive(false);
-        }
-        
-        playerTr.gameObject.SetActive(true);
-
-        if (eAnim != null)
-        {
-            enemyTr.parent = eAnim.transform;
-            enemyTr.localPosition = Vector3.zero;
-            enemyTr.localEulerAngles = facingOutward ? faceOut : faceIn;
-            eAnim.splineContainer = container;
-            eAnim.gameObject.SetActive(true);
-            StartCoroutine(enemyTr.GetComponent<RailCannon>().Inicijalizacija(sm[1], pocetnePozicije[1]));
-            enemyTr.gameObject.SetActive(true);
-        }
-    }
-
-    #region//UI
-    public void PointsMethod(int point)
-    {
-        _points += point;
-        postavke.score = _points;
-        pointsDisplay.text = $"Score: {_points}";
-    }
-    public void FuelDisplay(float fuel)
-    {
-        fuelMeter.anchoredPosition = new Vector2(0f, fuel0pos - (fuel * fuel0pos));
-    }
-    public void AmmoDisplay(int ammo)
-    {
-        ammoDisplay.text = $"Ammuntion: {ammo}";
+        //if (Input.GetKeyDown(KeyCode.Alpha1)) poolManager.DeployShield(playerControll);
+        //if (Input.GetKeyDown(KeyCode.Alpha2)) poolManager.DeployShield(enemyTr.GetComponent<RailCannon>());
     }
     #endregion
 
@@ -140,42 +75,31 @@ public class GameManager : EventManager
     protected override void GameStart()
     {
         base.GameStart();
-        canvases[0].transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Level: " + postavke.level;
+        closedAreas = new ClosedAreas(gridControll.tiles);
+        poolManager.Ini();
+        uimanager.Ini();
     }
     protected override void EndWin(string message, int level, bool victory)
     {
         base.EndWin(message, level, victory);
-        string display = victory ? "You've won!" : "Game Over!";
-       // print("Level " + level + " --------- " + display);
-        canvases[2].SetActive(true);
-        Image img = canvases[2].transform.GetChild(0).GetComponent<Image>();
-        img.DOFade(0.8f, 2f)
-            .From(0f)
-            .SetEase(Ease.InOutQuint);
-        canvases[2].transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = message;
-    }
-    #endregion
-
-    #region//POOLS
-    public void ShootBullet(Faction fact, Transform spawnPoint)
-    {
-        _bulletsTr[_counterBullets].SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
-        _bullets[_counterBullets].faction = fact;
-        _bulletsGo[_counterBullets].SetActive(true);
-        _counterBullets = (1 + _counterBullets) % _bullets.Length;
+        uimanager.EndLevel(message);
     }
     #endregion
 
     #region//BUTTONS
-    public void Btn_Restart()
-    {
-        SceneManager.LoadScene(gameObject.scene.buildIndex);
-    }
     public void Btn_NextLv()
     {
         postavke.level++;
         if (postavke.level > SceneManager.sceneCountInBuildSettings - 2) postavke.level = 1;
         Btn_Restart();
+    }
+    public void Btn_Restart()
+    {
+        SceneManager.LoadScene(gameObject.scene.buildIndex);
+    }
+    public void Btn_QuitToMain()
+    {
+        SceneManager.LoadScene(0);
     }
     #endregion
 }
@@ -184,7 +108,7 @@ public class ClosedAreas
 {
     Tile[,] _allTiles;
     List<Tile> _openTiles = new List<Tile>();
-    public class Sector
+    class Sector
     {
         public HashSet<Tile> tiles = new HashSet<Tile>();
         bool _hasExit;
@@ -233,8 +157,11 @@ public class ClosedAreas
                 }
             }
         }
+        if (_openTiles.Count <= 0) return;
+
         _allSectors.Add(new Sector());
         _allSectors[0].tiles.Add(_openTiles[0]);
+        RecursionMethod(_openTiles[0]);
 
         for (int k = 0; k < _openTiles.Count; k++)
         {
@@ -310,12 +237,11 @@ public class ClosedAreas
                 }
             }
         }
-
         for (int k = 0; k < _allSectors.Count; k++)
         {
             if (!_allSectors[k].HasExit)
             {
-                EventManager.LevelDoneWin("Game over! There are enclosed tiles and it is impossible to finish level!", GameManager.gm.postavke.level, false);
+                EventManager.LevelDoneWin?.Invoke("Game over! There are enclosed tiles and it is impossible to finish level!", GameManager.gm.postavke.level, false);
                 return;
             }
         }
@@ -323,4 +249,125 @@ public class ClosedAreas
     }
 
 }
+
+[System.Serializable]
+public class PoolManager
+{
+    [SerializeField] Transform poolBullets, poolShields;
+
+    Transform[] _bulletsTr;
+    Projectile[] _bullets;
+    GameObject[] _bulletsGo;
+    int _counterBullets;
+
+    Shield[] _shields;
+    GameObject[] _shieldsGo;
+    int _counterShields;
+
+    public void Ini()
+    {
+        _bulletsTr = HelperScript.GetAllChildernByType<Transform>(poolBullets);
+        _bullets = HelperScript.GetAllChildernByType<Projectile>(poolBullets);
+        _bulletsGo = new GameObject[_bullets.Length];
+        for (int i = 0; i < _bullets.Length; i++)
+        {
+            _bulletsGo[i] = _bullets[i].gameObject;
+        }
+
+        _shields = HelperScript.GetAllChildernByType<Shield>(poolShields);
+        _shieldsGo = new GameObject[_shields.Length];
+        for (int i = 0; i < _shields.Length; i++)
+        {
+            _shieldsGo[i] = _shields[i].gameObject;
+        }
+
+    }
+    public void ShootBullet(Faction fact, Transform spawnPoint)
+    {
+        _bulletsTr[_counterBullets].SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
+        _bullets[_counterBullets].faction = fact;
+        _bulletsGo[_counterBullets].SetActive(true);
+        _counterBullets = (1 + _counterBullets) % _bullets.Length;
+    }
+    public void DeployShield(RailCannon railCannonTraget)
+    {
+        if (railCannonTraget.activeShield != null) return;
+        _shields[_counterShields].DeployMe(railCannonTraget);
+        _shieldsGo[_counterShields].SetActive(true);
+        _counterShields = (1 + _counterShields) % _shields.Length;
+    }
+
+}
+
+[System.Serializable]
+public class UImanager
+{
+    GameManager gm;
+
+    public GameObject fuelParent;
+    RectTransform _fuelMeter;
+    const float CONST_FUELSTARTPOS = -191f;
+    public GameObject ammoParent;
+    TextMeshProUGUI _ammoDisplay;
+    [SerializeField] TextMeshProUGUI pointsDisplay;
+    const int CONST_SHIELDAWARD = 1000;
+
+    [SerializeField] Transform canParent;
+    GameObject[] canvases;
+    public Button btnNext, btnRestart, btnQuit;
+
+    public void Ini()
+    {
+        gm = GameManager.gm;
+        _fuelMeter = fuelParent.transform.GetChild(2).GetChild(0).GetComponent<RectTransform>();
+        _ammoDisplay = ammoParent.GetComponent<TextMeshProUGUI>();
+        canvases = new GameObject[canParent.childCount];
+        for (int i = 0; i < canParent.childCount; i++)
+        {
+            canvases[i] = canParent.GetChild(i).gameObject;
+        }
+        PointsMethod(0);
+        canvases[0].transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Level: " + gm.postavke.level;
+
+    }
+
+    public void PointsMethod(int point)
+    {
+        gm.postavke.score += point;
+        pointsDisplay.text = $"Score: {gm.postavke.score}";
+
+        //  int shieldAward = gm.postavke.score / CONST_SHIELDAWARD;
+        ////  Debug.Log(shieldAward);
+        //  if (shieldAward > gm.postavke.shieldsByScore)
+        //  {
+        //      gm.postavke.shieldsByScore++;
+        //      gm.poolManager.DeployShield(gm.playerControll);
+        //  }
+        if (gm.postavke.score >= CONST_SHIELDAWARD)
+        {
+            gm.postavke.score -= CONST_SHIELDAWARD;
+            gm.poolManager.DeployShield(gm.playerControll);
+        }
+    }
+    public void FuelDisplay(float fuel)
+    {
+        _fuelMeter.anchoredPosition = new Vector2(0f, CONST_FUELSTARTPOS - (fuel * CONST_FUELSTARTPOS));
+    }
+    public void AmmoDisplay(int ammo)
+    {
+        _ammoDisplay.text = $"Ammuntion: {ammo}";
+    }
+
+    public void EndLevel(string message)
+    {
+        canvases[2].SetActive(true);
+        Image img = canvases[2].transform.GetChild(0).GetComponent<Image>();
+        img.DOFade(0.8f, 2f)
+            .From(0f)
+            .SetEase(Ease.InOutQuint);
+        canvases[2].transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = message;
+    }
+}
+
+
 

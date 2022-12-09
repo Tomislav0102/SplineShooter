@@ -6,9 +6,9 @@ using FirstCollection;
 public class Pickup : EventManager
 {
     public PUtype pUtype;
-    int _currentPU;
+    int _currentPu;
     GameManager gm;
-    GameObject[] gos = new GameObject[3];
+    GameObject[] _gos = new GameObject[3];
     Transform _myTransform;
     BoxCollider2D _boxCollider;
     bool IsActive
@@ -17,7 +17,7 @@ public class Pickup : EventManager
         set
         {
             _isActive = value;
-            gos[_currentPU].SetActive(_isActive);
+            _gos[_currentPu].SetActive(_isActive);
             _boxCollider.enabled = _isActive;
         }
     }
@@ -30,31 +30,38 @@ public class Pickup : EventManager
         _boxCollider = GetComponent<BoxCollider2D>();
         for (int i = 0; i < _myTransform.childCount; i++)
         {
-            gos[i] = _myTransform.GetChild(i).gameObject;
+            _gos[i] = _myTransform.GetChild(i).gameObject;
         }
     }
-    private void OnEnable()
+
+    protected override void OnEnable()
     {
+        base.OnEnable();
         for (int i = 0; i < _myTransform.childCount; i++)
         {
-            gos[i].SetActive(false);
+            _gos[i].SetActive(false);
         }
-        _currentPU = pUtype == PUtype.Random ? Random.Range(0, 3) : (int)pUtype;
+        _currentPu = pUtype == PUtype.Random ? Random.Range(0, 3) : (int)pUtype;
         IsActive = true;
 
         InvokeRepeating(nameof(MetodaRepeat), Random.Range(4f, 6f), 4f);
     }
-
     void MetodaRepeat()
     {
         IsActive = !IsActive;
     }
-    public void OnPickup()
+    public void OnPickup(Faction fact)
     {
+        CancelInvoke();
+        IsActive = false;
+        InvokeRepeating(nameof(MetodaRepeat), 4f, 4f);
+
+        if (fact != Faction.Ally) return;
+        
         switch (pUtype)
         {
             case PUtype.Diamond:
-                gm.PointsMethod(100);
+                gm.uimanager.PointsMethod(100);
                 break;
             case PUtype.Fuel:
                 gm.playerControll.Refuel();
@@ -63,9 +70,6 @@ public class Pickup : EventManager
                 gm.playerControll.Ammo = 10;
                 break;
         }
-        CancelInvoke();
-        IsActive = false;
-        InvokeRepeating(nameof(MetodaRepeat), 4f, 4f);
     }
     
 }
