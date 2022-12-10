@@ -22,9 +22,9 @@ public class EnemyBehaviour : RailCannon
         DistanceTraveled = rangeSpeed.y;
         base.Motion();
     }
-    protected override void EnemyRemoved(EnemyBehaviour enemyBehaviour)
+    protected override void CallEv_EnemyDestroyed(EnemyBehaviour enemyBehaviour)
     {
-        base.EnemyRemoved(enemyBehaviour);
+        base.CallEv_EnemyDestroyed(enemyBehaviour);
         if (enemyBehaviour == this) IsActive = false;
     }
     private void Update()

@@ -3,28 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 using FirstCollection;
 using UnityEngine.Splines;
-using Unity.VisualScripting;
 
 public class LevelManager : EventManager
 {
     GameManager gm;
-   // [SerializeField] SplineAnimate player, enemy;
     [SerializeField] SplineContainer container;
     [SerializeField] Transform parActors;
     List<RailCannon> _allActors = new List<RailCannon>();
-    [SerializeField] RailCannon playerPrefab;
-    [SerializeField] RailCannon enemyPrefab;
-    [SerializeField] SplineAnimate splineAnimatePrefab;
     List<SplineAnimate> _splineAnimates = new List<SplineAnimate>();
 
     [Header("LEVEL SPECIFIC")]
     readonly Vector3 _faceIn = new Vector3(90f, 90f, 180f);
     readonly Vector3 _faceOut = new Vector3(90f, 180f, 90f);
-
     [SerializeField] bool facingOutward;
-    int _enemyCount;
+    public Vector3 GetStartRotationEuler()
+    {
+        return facingOutward ? _faceOut : _faceIn;
+    }
+    [HideInInspector] public int enemyCount;
     [HideInInspector] public int enemyWithCannonsCount;
-    [SerializeField] ShootingMode[] shootingMode = new ShootingMode[2];
+    [SerializeField] List<ShootingMode> shootingMode = new List<ShootingMode>();
     [SerializeField, Tooltip("If 0 fuel is infinte")] int fuel = 1;
     [SerializeField, Tooltip("if 0 ammo is infinte")] int ammo = 10;
     [SerializeField, Tooltip("Prvi je player, ostali su sve enemy")] float[] startPositions;
@@ -46,31 +44,51 @@ public class LevelManager : EventManager
         {
             pusSpawnPoints[i] = puParent.GetChild(i).position;
         }
-        for (int i = 1; i < shootingMode.Length; i++)
+        DefineEnemyCount();
+    }
+
+    private void DefineEnemyCount()
+    {
+        enemyCount = 0;
+        enemyWithCannonsCount = 0;
+        for (int i = 1; i < shootingMode.Count; i++)
         {
-            _enemyCount++;
+            enemyCount++;
             if (shootingMode[i] != ShootingMode.NoBullets) enemyWithCannonsCount++;
         }
     }
 
-    protected override void GameStart()
+    public void AddEnemy(SplineAnimate splineAnimate, ShootingMode sm, float startPos)
     {
-        base.GameStart();
+        shootingMode.Add(sm);
+        _splineAnimates.Add(splineAnimate);
+        splineAnimate.splineContainer = container;
+        splineAnimate.normalizedTime = startPos;
+        splineAnimate.transform.parent = parActors;
+
+        _allActors.Add(splineAnimate.transform.GetComponentInChildren<RailCannon>());
+        DefineEnemyCount();
+    }
+    #region //OVERRIDES
+    protected override void CallEv_GameReady()
+    {
+        base.CallEv_GameReady();
         container = GameObject.FindGameObjectWithTag("Path").GetComponent<SplineContainer>();
         gm.splineContainer = container;
 
         //actors initialization
-        for (int i = 0; i < shootingMode.Length; i++)
+        for (int i = 0; i < shootingMode.Count; i++)
         {
-            _splineAnimates.Add(Instantiate(splineAnimatePrefab, parActors));
+            _splineAnimates.Add(Instantiate(gm.splineAnimatePrefab, parActors));
             _splineAnimates[i].splineContainer = container;
             _splineAnimates[i].gameObject.SetActive(true);
 
-            _allActors.Add(Instantiate((i == 0 ? playerPrefab : enemyPrefab), _splineAnimates[i].transform));
+            _allActors.Add(_splineAnimates[i].transform.GetChild(i == 0 ? 0 : 1).GetComponent<RailCannon>());
             RailCannon rc = _allActors[i];
             rc.transform.localPosition = Vector3.zero;
-            rc.transform.localEulerAngles = facingOutward ? _faceOut : _faceIn;
-            StartCoroutine(rc.Inicijalizacija(shootingMode[i], startPositions[i]));
+            rc.transform.localEulerAngles = GetStartRotationEuler();
+            rc.gameObject.SetActive(true);
+            rc.Inicijalizacija(shootingMode[i], startPositions[i]);
         }
 
         gm.playerControll = _allActors[0].GetComponent<PlayerControll>();
@@ -98,11 +116,10 @@ public class LevelManager : EventManager
             _currentPU.gameObject.SetActive(true);
         }
     }
-
-    protected override void EnemyRemoved(EnemyBehaviour enemyBehaviour)
+    protected override void CallEv_EnemyDestroyed(EnemyBehaviour enemyBehaviour)
     {
-        base.EnemyRemoved(enemyBehaviour);
-        _enemyCount--;
+        base.CallEv_EnemyDestroyed(enemyBehaviour);
+        enemyCount--;
         for (int i = 1; i < _allActors.Count; i++)
         {
             if(enemyBehaviour == _allActors[i] && shootingMode[i] != ShootingMode.NoBullets )
@@ -112,7 +129,7 @@ public class LevelManager : EventManager
             }
         }
     }
-
+    #endregion
 
 
 

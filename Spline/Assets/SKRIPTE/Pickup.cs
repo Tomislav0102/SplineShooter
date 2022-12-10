@@ -48,7 +48,8 @@ public class Pickup : EventManager
     }
     void MetodaRepeat()
     {
-        IsActive = !IsActive;
+        if (pUtype == PUtype.Diamond && gm.playerControll.activeShield != null) IsActive = false;
+        else IsActive = !IsActive;
     }
     public void OnPickup(Faction fact)
     {

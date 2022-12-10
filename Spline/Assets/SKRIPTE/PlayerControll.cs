@@ -32,7 +32,7 @@ public class PlayerControll : RailCannon
         AnimTurret.SetInteger("faction", (int)faction);
 
         Refuel();
-        print(gm.splineContainer.EvaluatePosition(0.79f));
+      //  print(gm.splineContainer.EvaluatePosition(0.79f));
     }
 
     private void Update()

@@ -44,14 +44,14 @@ public class PropMoveBehaviour : EventManager
                 break;
         }
     }
-    protected override void GameStart()
+    protected override void CallEv_GameReady()
     {
-        base.GameStart();
+        base.CallEv_GameReady();
         isActive = true;
     }
-    protected override void EndWin(string st, int level, bool victory)
+    protected override void CallEv_LevelDoneWin(string st, int level, bool victory)
     {
-        base.EndWin(st, level, victory);
+        base.CallEv_LevelDoneWin(st, level, victory);
         isActive = false;
     }
 }

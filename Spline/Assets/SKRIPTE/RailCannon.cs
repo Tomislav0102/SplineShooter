@@ -7,7 +7,6 @@ using UnityEngine.Splines;
 public class RailCannon : EventManager
 {
     internal GameManager gm;
-    SplineContainer _container;
     BoxCollider2D _boxCollider2D;
     internal SplineAnimate SplineAnimate;
     internal float DistanceTraveled;
@@ -64,14 +63,13 @@ public class RailCannon : EventManager
     RaycastHit2D _hit2D;
     [HideInInspector] public Shield activeShield;
 
-    public IEnumerator Inicijalizacija(ShootingMode sm, float pocetnaPoz)
+    public void Inicijalizacija(ShootingMode sm, float pocetnaPoz)
     {
         MyTransform = transform;
         _parentTr = MyTransform.parent;
         _boxCollider2D = GetComponent<BoxCollider2D>();
         gm = GameManager.gm;
 
-        _container = gm.splineContainer;
         SplineAnimate = _parentTr.GetComponent<SplineAnimate>();
         SplineAnimate.normalizedTime = pocetnaPoz;
 
@@ -86,7 +84,6 @@ public class RailCannon : EventManager
             _lrs[i].startColor = faction == Faction.Ally ? gm.colAlly : gm.colEnemy;
         }
         _shootingMode = sm;
-        yield return null;
         IsActive = true;
     }
 
@@ -109,13 +106,20 @@ public class RailCannon : EventManager
     protected virtual void Motion()
     {
         SplineAnimate.normalizedTime += Time.deltaTime * DistanceTraveled * 0.1f;
-        if (SplineAnimate.normalizedTime > 1f) SplineAnimate.normalizedTime = 0f;
+        if (SplineAnimate.normalizedTime > 1f)
+        {
+            if (gm.enemyAdditions != null && SplineAnimate.splineContainer != gm.splineContainer)
+            {
+                gm.levelManager.AddEnemy(SplineAnimate, _shootingMode, gm.enemyAdditions.insertionNorTime);
+            }
+            else SplineAnimate.normalizedTime = 0f;
+        }
 
     }
 
-    protected override void EndWin(string message, int level, bool victory)
+    protected override void CallEv_LevelDoneWin(string message, int level, bool victory)
     {
-        base.EndWin(message, level, victory);
+        base.CallEv_LevelDoneWin(message, level, victory);
         if (IsActive) IsActive = false;
     }
     internal void RaysMethod()

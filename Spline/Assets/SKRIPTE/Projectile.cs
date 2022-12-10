@@ -67,7 +67,7 @@ public class Projectile : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (!_pomocniOneHit) return;
-       // print(collision.name);
+     //   print(collision.name);
         if (collision.TryGetComponent(out Tile tl))
         {
             if (tl.CurrentState == TileState.Closed)

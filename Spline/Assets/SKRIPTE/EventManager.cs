@@ -11,25 +11,25 @@ public class EventManager : MonoBehaviour
 
     protected virtual void OnEnable()
     {
-        LevelDoneWin += EndWin;
-        GameReady += GameStart;
-        EnemyDestroyed += EnemyRemoved;
+        LevelDoneWin += CallEv_LevelDoneWin;
+        GameReady += CallEv_GameReady;
+        EnemyDestroyed += CallEv_EnemyDestroyed;
     }
     protected virtual void OnDisable()
     {
-        LevelDoneWin -= EndWin;
-        GameReady -= GameStart;
-        EnemyDestroyed -= EnemyRemoved;
+        LevelDoneWin -= CallEv_LevelDoneWin;
+        GameReady -= CallEv_GameReady;
+        EnemyDestroyed -= CallEv_EnemyDestroyed;
     }
-    protected virtual void GameStart()
+    protected virtual void CallEv_GameReady()
     {
        
     }
-    protected virtual void EndWin(string st, int level, bool victory)
+    protected virtual void CallEv_LevelDoneWin(string st, int level, bool victory)
     {
        
     }
-    protected  virtual void EnemyRemoved(EnemyBehaviour enemyBehaviour)
+    protected  virtual void CallEv_EnemyDestroyed(EnemyBehaviour enemyBehaviour)
     {
 
     }

@@ -3452,7 +3452,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!64 &973949913
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -7206,6 +7206,9 @@ MonoBehaviour:
   colAlly: {r: 0.25802803, g: 0.25, b: 1, a: 1}
   colEnemy: {r: 0.9811321, g: 0.64775217, b: 0.1804913, a: 1}
   splineContainer: {fileID: 0}
+  playerPrefab: {fileID: 6997229180514377553, guid: a2f5f01af58a9d94d9b60de96b54e2cf, type: 3}
+  enemyPrefab: {fileID: 3447778492843317476, guid: 4326659fe93a98a488394ff57b4fe9a3, type: 3}
+  splineAnimatePrefab: {fileID: 6017419241309259162, guid: c773004a258043a4abe4afc144bd7fc7, type: 3}
   poolManager:
     poolBullets: {fileID: 2025603853}
     poolShields: {fileID: 1181866881}

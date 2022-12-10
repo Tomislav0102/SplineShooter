@@ -13,12 +13,15 @@ public class GameManager : EventManager
     public static GameManager gm;
     [HideInInspector] public GridControll gridControll;
     [HideInInspector] public LevelManager levelManager;
+    [HideInInspector] public EnemyAdditions enemyAdditions;
     public Camera mainCam;
     public SO_postavke postavke;
     [HideInInspector] public PlayerControll playerControll;
+    public int maxEnemyCount = 10;
     public Color colAlly;
     public Color colEnemy;
     public SplineContainer splineContainer;
+    public SplineAnimate splineAnimatePrefab;
 
     [Header("--CLASSES")]
     public PoolManager poolManager;
@@ -72,16 +75,16 @@ public class GameManager : EventManager
     #endregion
 
     #region//EVENTS
-    protected override void GameStart()
+    protected override void CallEv_GameReady()
     {
-        base.GameStart();
+        base.CallEv_GameReady();
         closedAreas = new ClosedAreas(gridControll.tiles);
         poolManager.Ini();
         uimanager.Ini();
     }
-    protected override void EndWin(string message, int level, bool victory)
+    protected override void CallEv_LevelDoneWin(string message, int level, bool victory)
     {
-        base.EndWin(message, level, victory);
+        base.CallEv_LevelDoneWin(message, level, victory);
         uimanager.EndLevel(message);
     }
     #endregion
@@ -336,13 +339,6 @@ public class UImanager
         gm.postavke.score += point;
         pointsDisplay.text = $"Score: {gm.postavke.score}";
 
-        //  int shieldAward = gm.postavke.score / CONST_SHIELDAWARD;
-        ////  Debug.Log(shieldAward);
-        //  if (shieldAward > gm.postavke.shieldsByScore)
-        //  {
-        //      gm.postavke.shieldsByScore++;
-        //      gm.poolManager.DeployShield(gm.playerControll);
-        //  }
         if (gm.postavke.score >= CONST_SHIELDAWARD)
         {
             gm.postavke.score -= CONST_SHIELDAWARD;
