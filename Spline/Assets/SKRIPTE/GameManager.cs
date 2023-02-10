@@ -7,23 +7,24 @@ using TMPro;
 using UnityEngine.SceneManagement;
 using DG.Tweening;
 using UnityEngine.Splines;
+using Coffee.UIEffects;
 
 public class GameManager : EventManager
 {
     public static GameManager gm;
+    [SerializeField] UITransitionEffect transitionEffect;
     [HideInInspector] public GridControll gridControll;
     [HideInInspector] public LevelManager levelManager;
     [HideInInspector] public EnemyAdditions enemyAdditions;
     public Camera mainCam;
     public SO_postavke postavke;
     [HideInInspector] public PlayerControll playerControll;
-    public int maxEnemyCount = 10;
     public Color colAlly;
     public Color colEnemy;
+    public Color colRed;
     public SplineContainer splineContainer;
-    public SplineAnimate splineAnimatePrefab;
 
-    [Header("--CLASSES")]
+    [Header("--CLASSES--")]
     public PoolManager poolManager;
     public UImanager uimanager;
     public ClosedAreas closedAreas;
@@ -37,6 +38,7 @@ public class GameManager : EventManager
 
     IEnumerator Start()
     {
+        transitionEffect.gameObject.SetActive(true);
         for (int i = 2; i < SceneManager.sceneCountInBuildSettings; i++)
         {
             if (SceneManager.GetSceneByBuildIndex(i).isLoaded) SceneManager.UnloadSceneAsync(i);
@@ -73,6 +75,10 @@ public class GameManager : EventManager
         //if (Input.GetKeyDown(KeyCode.Alpha2)) poolManager.DeployShield(enemyTr.GetComponent<RailCannon>());
     }
     #endregion
+    public Transform InstantiateMethod(Transform transformToInstantiate)
+    {
+        return Instantiate(transformToInstantiate);
+    }
 
     #region//EVENTS
     protected override void CallEv_GameReady()
@@ -81,10 +87,11 @@ public class GameManager : EventManager
         closedAreas = new ClosedAreas(gridControll.tiles);
         poolManager.Ini();
         uimanager.Ini();
+        transitionEffect.Hide();
     }
-    protected override void CallEv_LevelDoneWin(string message, int level, bool victory)
+    protected override void CallEv_LevelDoneWin(string message, bool victory)
     {
-        base.CallEv_LevelDoneWin(message, level, victory);
+        base.CallEv_LevelDoneWin(message, victory);
         uimanager.EndLevel(message);
     }
     #endregion
@@ -107,6 +114,8 @@ public class GameManager : EventManager
     #endregion
 }
 
+
+#region//CLASSES
 public class ClosedAreas
 {
     Tile[,] _allTiles;
@@ -244,7 +253,7 @@ public class ClosedAreas
         {
             if (!_allSectors[k].HasExit)
             {
-                EventManager.LevelDoneWin?.Invoke("Game over! There are enclosed tiles and it is impossible to finish level!", GameManager.gm.postavke.level, false);
+                EventManager.LevelDoneWin?.Invoke("Game over! There are enclosed tiles and it is impossible to finish level!", false);
                 return;
             }
         }
@@ -256,7 +265,7 @@ public class ClosedAreas
 [System.Serializable]
 public class PoolManager
 {
-    [SerializeField] Transform poolBullets, poolShields;
+    [SerializeField] Transform poolBullets, poolShields, poolActors;
 
     Transform[] _bulletsTr;
     Projectile[] _bullets;
@@ -285,10 +294,11 @@ public class PoolManager
         }
 
     }
-    public void ShootBullet(Faction fact, Transform spawnPoint)
+    public void ShootBullet(Faction fact, ProjectileType projectileType, Transform spawnPoint)
     {
         _bulletsTr[_counterBullets].SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
         _bullets[_counterBullets].faction = fact;
+        _bullets[_counterBullets].projectileType = projectileType;
         _bulletsGo[_counterBullets].SetActive(true);
         _counterBullets = (1 + _counterBullets) % _bullets.Length;
     }
@@ -300,6 +310,17 @@ public class PoolManager
         _counterShields = (1 + _counterShields) % _shields.Length;
     }
 
+    public Transform GetActor()
+    {
+        if (poolActors.childCount == 0) return null;
+        return poolActors.GetChild(0);
+    }
+    public void ReturnActor(Transform actor)
+    {
+        actor.parent = poolActors;
+        actor.GetChild(0).gameObject.SetActive(false);
+        actor.gameObject.SetActive(false);
+    }
 }
 
 [System.Serializable]
@@ -309,7 +330,9 @@ public class UImanager
 
     public GameObject fuelParent;
     RectTransform _fuelMeter;
-    const float CONST_FUELSTARTPOS = -191f;
+    public GameObject bossParent;
+    RectTransform _bossMeter;
+    const float CONST_METERSTARTPOS = -191f;
     public GameObject ammoParent;
     TextMeshProUGUI _ammoDisplay;
     [SerializeField] TextMeshProUGUI pointsDisplay;
@@ -323,6 +346,7 @@ public class UImanager
     {
         gm = GameManager.gm;
         _fuelMeter = fuelParent.transform.GetChild(2).GetChild(0).GetComponent<RectTransform>();
+        _bossMeter = bossParent.transform.GetChild(2).GetChild(0).GetComponent<RectTransform>();
         _ammoDisplay = ammoParent.GetComponent<TextMeshProUGUI>();
         canvases = new GameObject[canParent.childCount];
         for (int i = 0; i < canParent.childCount; i++)
@@ -332,6 +356,7 @@ public class UImanager
         PointsMethod(0);
         canvases[0].transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Level: " + gm.postavke.level;
 
+        BossHealthDisplay(1f);
     }
 
     public void PointsMethod(int point)
@@ -347,8 +372,13 @@ public class UImanager
     }
     public void FuelDisplay(float fuel)
     {
-        _fuelMeter.anchoredPosition = new Vector2(0f, CONST_FUELSTARTPOS - (fuel * CONST_FUELSTARTPOS));
+        _fuelMeter.anchoredPosition = new Vector2(0f, CONST_METERSTARTPOS - (fuel * CONST_METERSTARTPOS));
     }
+    public void BossHealthDisplay(float remainingHp)
+    {
+        _bossMeter.anchoredPosition = new Vector2(0f, CONST_METERSTARTPOS - (remainingHp * CONST_METERSTARTPOS));
+    }
+
     public void AmmoDisplay(int ammo)
     {
         _ammoDisplay.text = $"Ammuntion: {ammo}";
@@ -356,6 +386,10 @@ public class UImanager
 
     public void EndLevel(string message)
     {
+        fuelParent.SetActive(false);
+        ammoParent.SetActive(false);
+        bossParent.SetActive(false);
+
         canvases[2].SetActive(true);
         Image img = canvases[2].transform.GetChild(0).GetComponent<Image>();
         img.DOFade(0.8f, 2f)
@@ -364,6 +398,6 @@ public class UImanager
         canvases[2].transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = message;
     }
 }
-
+#endregion
 
 

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 0b57eb3b6efbe984bbd72356a575224e
+guid: 8b45daba04874ed43985c97772f84ebf
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -46,9 +46,9 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
-  spriteMeshType: 1
+  spriteMeshType: 0
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 256
@@ -143,7 +143,7 @@ TextureImporter:
         height: 512
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 86, z: 0, w: 86}
+      border: {x: 0, y: 0, z: 0, w: 0}
       outline:
       - - {x: -33, y: 256}
         - {x: -95, y: 223}

@@ -6,7 +6,7 @@ using FirstCollection;
 public class EventManager : MonoBehaviour
 {
     public static System.Action GameReady;
-    public static System.Action<string, int, bool> LevelDoneWin;
+    public static System.Action<string, bool> LevelDoneWin;
     public static System.Action<EnemyBehaviour> EnemyDestroyed;
 
     protected virtual void OnEnable()
@@ -25,7 +25,7 @@ public class EventManager : MonoBehaviour
     {
        
     }
-    protected virtual void CallEv_LevelDoneWin(string st, int level, bool victory)
+    protected virtual void CallEv_LevelDoneWin(string st, bool victory)
     {
        
     }

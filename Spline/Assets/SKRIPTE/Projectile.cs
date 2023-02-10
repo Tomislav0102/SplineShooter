@@ -11,8 +11,11 @@ public class Projectile : MonoBehaviour
     float _speed;
     const float CONST_BASESPEED = 0.1f;
     bool _pomocniOneHit;
-    /*[HideInInspector]*/ public Faction faction;
+    [HideInInspector] public Faction faction;
+    [HideInInspector] public ProjectileType projectileType;
     [SerializeField] SpriteRenderer sprite;
+
+    [SerializeField] int damage = 1;
 
     private void Awake()
     {
@@ -27,11 +30,21 @@ public class Projectile : MonoBehaviour
         {
             case Faction.Ally:
                 _speed = CONST_BASESPEED * 2f;
-                sprite.color = gm.colAlly;
                 break;
             case Faction.Enemy:
                 _speed = CONST_BASESPEED;
+                break;
+        }
+        switch (projectileType)
+        {
+            case ProjectileType.Blue:
+                sprite.color = gm.colAlly;
+                break;
+            case ProjectileType.Yellow:
                 sprite.color = gm.colEnemy;
+                break;
+            case ProjectileType.Red:
+                sprite.color = gm.colRed;
                 break;
         }
         StartCoroutine(EnableContinuation());
@@ -75,42 +88,46 @@ public class Projectile : MonoBehaviour
                 gm.gridControll.BulletHitTile(faction, _myTransform, tl.pozicija);
             }
         }
-        else if (collision.TryGetComponent(out RailCannon railCannon) && railCannon.IsActive)
+        else if (collision.TryGetComponent(out ITakeDamage takeDamage))
         {
-            switch (railCannon.faction)
-            {
-                case Faction.Ally:
-                    string st = faction == Faction.Ally ? "You killed yourself!" : "Killed by enemy bullet...";
-                    EventManager.LevelDoneWin?.Invoke(st, gm.postavke.level, false);
-                    break;
-                case Faction.Enemy:
-                    EventManager.EnemyDestroyed?.Invoke(railCannon.GetComponent<EnemyBehaviour>());
-                    break;
-            }
+            takeDamage.TakeDamage(faction, damage);
         }
-        else if (collision.TryGetComponent(out Projectile projectile))
+        else if (collision.CompareTag("Zrcalo"))
         {
-            if (faction != projectile.faction) projectile.End();
-            else return;
+            _myTransform.up = Vector2.Reflect(_myTransform.up, collision.transform.right);
+            StartCoroutine(ReflexijaPauza());
+            return;
         }
-        else if (collision.TryGetComponent(out Pickup pu))
-        {
-            pu.OnPickup(faction);
-        }
-        else if (collision.TryGetComponent(out Shield shield) && shield.fact != faction)
-        {
-            shield.End();
-        }
-        else if (collision.CompareTag("Barrier"))
-        {
-            collision.gameObject.SetActive(false);
-        }
-        // else if (collision.CompareTag("Zrcalo"))
-        // {
-        //     _r2D.velocity = _speed * Vector2.Reflect(_myTransform.up, collision.transform.right);
-        //     StartCoroutine(ReflexijaPauza());
-        //     return;
-        // }
+        //else if (collision.TryGetComponent(out RailCannon railCannon) && railCannon.IsActive)
+        //{
+        //    switch (railCannon.faction)
+        //    {
+        //        case Faction.Ally:
+        //            string st = faction == Faction.Ally ? "You killed yourself!" : "Killed by enemy bullet...";
+        //            gm.playerControll.TakeDamage(damage, st);
+        //            break;
+        //        case Faction.Enemy:
+        //            railCannon.TakeDamage(damage, "");
+        //            break;
+        //    }
+        //}
+        //else if (collision.TryGetComponent(out Projectile projectile))
+        //{
+        //    if (faction != projectile.faction) projectile.End();
+        //    else return;
+        //}
+        //else if (collision.TryGetComponent(out Pickup pu))
+        //{
+        //    pu.OnPickup(faction);
+        //}
+        //else if (collision.TryGetComponent(out Shield shield) && shield.fact != faction)
+        //{
+        //    shield.End();
+        //}
+        //else if (collision.CompareTag("Barrier"))
+        //{
+        //    collision.gameObject.SetActive(false);
+        //}
 
         End();
 

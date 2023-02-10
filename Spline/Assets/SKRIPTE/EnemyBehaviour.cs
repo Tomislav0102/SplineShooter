@@ -1,25 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using Unity.Mathematics;
 
 public class EnemyBehaviour : RailCannon
 {
+    public bool isBoss;
     float _tajmerShoot = -5f;
+    float _effDistanceTraveled;
     private void Start()
     {
-        AnimTank.SetInteger("faction", (int)faction);
-        AnimTurret.SetInteger("faction", (int)faction);
-        AnimTank.SetBool("isMoving", true);
-
+        animTank.SetBool("isMoving", false);
+        _effDistanceTraveled = 0f;
+        Invoke(nameof(BeginPause), 2f);
+    }
+    void BeginPause()
+    {
+        animTank.SetBool("isMoving", true);
+        _effDistanceTraveled = maxSpeed;
     }
     protected override void Motion()
     {
-        // _currSpeed += _acceleration * _acceleration * Time.deltaTime;
-        //  _currSpeed = Mathf.Clamp(_currSpeed, rangeSpeed.x, rangeSpeed.y);
-        DistanceTraveled = rangeSpeed.y;
+        distanceTraveled = _effDistanceTraveled;
         base.Motion();
     }
     protected override void CallEv_EnemyDestroyed(EnemyBehaviour enemyBehaviour)
@@ -38,6 +39,8 @@ public class EnemyBehaviour : RailCannon
             Shooting();
         }
         RaysMethod();
+
+        
     }
 
 

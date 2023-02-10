@@ -13,6 +13,7 @@ public class GridControll : MonoBehaviour
     Vector2 _razlika;
     float dotX, dotY;
     public bool isRotating;
+    int _counterFindNeighbour;
 
     private void Awake()
     {
@@ -33,6 +34,7 @@ public class GridControll : MonoBehaviour
 
     public void BulletHitTile(Faction fact, Transform bulletPoz, Vector2Int tilePoz)
     {
+        _counterFindNeighbour = 0;
         switch (fact)
         {
             case Faction.Ally:
@@ -42,17 +44,17 @@ public class GridControll : MonoBehaviour
                 dotY = Vector2.Dot(_hitTileTransform.up, _razlika);
                 if (Mathf.Abs(dotX) > Mathf.Abs(dotY))
                 {
-                    _neighbourTile = tiles[tilePoz.x + (dotX > 0f ? 1 : -1), tilePoz.y];
+                    _neighbourTile = FindNeighbourX(tilePoz);
                 }
                 else
                 {
-                    _neighbourTile = tiles[tilePoz.x, tilePoz.y + (dotY > 0f ? 1 : -1)];
+                    _neighbourTile = FindNeighbourY(tilePoz);
                 }
 
                 if (_neighbourTile.CurrentState == TileState.Danger)
                 {
                     _neighbourTile.WrongTile();
-                    EventManager.LevelDoneWin?.Invoke("Wrong tile!", gm.postavke.level, false);
+                    EventManager.LevelDoneWin?.Invoke("Wrong tile!", false);
                     return;
                 }
 
@@ -75,10 +77,30 @@ public class GridControll : MonoBehaviour
                         }
                     }
                 }
-                EventManager.LevelDoneWin?.Invoke("No more tiles, game over!", gm.postavke.level, false);
+                EventManager.LevelDoneWin?.Invoke("No more tiles, game over!", false);
                 break;
         }
     }
+
+    private Tile FindNeighbourX(Vector2Int tilePoz)
+    {
+        _counterFindNeighbour++;
+        if (_counterFindNeighbour > 5) return tiles[tilePoz.x, tilePoz.y];
+
+        Tile tl = tiles[tilePoz.x + (dotX > 0f ? 1 : -1), tilePoz.y];
+        if (tl.CurrentState == TileState.Closed) return FindNeighbourY(tilePoz);
+        return tl;
+    }
+    private Tile FindNeighbourY(Vector2Int tilePoz)
+    {
+        _counterFindNeighbour++;
+        if (_counterFindNeighbour > 5) return tiles[tilePoz.x, tilePoz.y];
+
+        Tile tl = tiles[tilePoz.x, tilePoz.y + (dotY > 0f ? 1 : -1)];
+        if (tl.CurrentState == TileState.Closed) return FindNeighbourX(tilePoz);
+        return tl;
+    }
+
     void CheckGameOverPlayerAction()
     {
         bool gameWon = true; //all tiles are closed
@@ -95,11 +117,11 @@ public class GridControll : MonoBehaviour
         }
         if (gameWon)
         {
-            EventManager.LevelDoneWin?.Invoke("Level completed!", gm.postavke.level, true);
+            EventManager.LevelDoneWin?.Invoke("Level completed!", true);
             return;
         }
 
-        if (!isRotating && gm.levelManager.enemyWithCannonsCount <= 0) gm.closedAreas.EnclosureCheck();
+        if (!isRotating && !gm.levelManager.HasEnemiesWithCannons()) gm.closedAreas.EnclosureCheck();
 
 
     }

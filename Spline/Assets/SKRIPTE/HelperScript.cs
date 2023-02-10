@@ -27,7 +27,14 @@ namespace FirstCollection
             return tip;
         }
     }
-
+    public interface ITakeDamage
+    {
+        void TakeDamage(Faction attackerFaction, int dam);
+    }
+    public interface IActivation
+    {
+        bool IsActive { get; set; }
+    }
     public enum TileState
     {
         Open,
@@ -40,17 +47,24 @@ namespace FirstCollection
         Enemy,
         Neutral
     }
+    public enum ProjectileType
+    {
+        Blue,
+        Yellow,
+        Red
+    }
     public enum MotionType
     {
         Rotation,
-        Translation,
-        RotateGroup
+        RotateGroup,
+        Translation
     }
     public enum ShootingMode
     {
         NoBullets,
         OneBullet,
-        TwoBullets
+        TwoBullets,
+        ThreeBullets
     }
     public enum PUtype
     {
@@ -58,5 +72,9 @@ namespace FirstCollection
         Fuel,
         Ammo,
         Random
+    }
+    public enum ConditionForActivation //used for special cases
+    {
+        BossKilled
     }
 }

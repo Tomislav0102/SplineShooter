@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using FirstCollection;
 
-public class Shield : MonoBehaviour
+public class Shield : MonoBehaviour, ITakeDamage
 {
     GameManager gm;
     [HideInInspector] public Faction fact;
     RailCannon _railCannon;
     Transform _rcTransform;
     Transform _myTransform;
+    int _hitPoints;
+    [SerializeField] int maxHitPoints = 1;
     [SerializeField] SpriteRenderer sprite;
     private void Awake()
     {
@@ -21,6 +23,7 @@ public class Shield : MonoBehaviour
     }
     public void DeployMe(RailCannon rc)
     {
+        _hitPoints = maxHitPoints;
         _railCannon = rc;
         _railCannon.activeShield = this;
         fact = _railCannon.faction;
@@ -28,7 +31,7 @@ public class Shield : MonoBehaviour
         if (gm == null) gm = GameManager.gm;
         sprite.color = fact == Faction.Ally ? gm.colAlly : gm.colEnemy;
     }
-    public void End()
+    void End()
     {
         if(_railCannon!= null)
         {
@@ -36,5 +39,11 @@ public class Shield : MonoBehaviour
             _railCannon = null;
         }
         gameObject.SetActive(false);
+    }
+
+    public void TakeDamage(Faction attackerFaction, int dam)
+    {
+        _hitPoints -= dam;
+        if (_hitPoints <= 0) End();
     }
 }

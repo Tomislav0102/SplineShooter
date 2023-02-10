@@ -20,16 +20,15 @@ public class PlayerControll : RailCannon
     [HideInInspector] public bool hasAmmoFeature = true;
 
     float _fuel;
+    [HideInInspector] public float fuelTankCapacity = 1f;
     [HideInInspector] public bool hasFuelFeature = true;
     Vector2 _currentPos, _oldPos;
     float _totalDistance, _lengthOfCurve, _fuelRemaining;
 
     private void Start()
     {
-        _oldPos = MyTransform.position;
+        _oldPos = myTransform.position;
         _lengthOfCurve = gm.splineContainer.CalculateLength();
-        AnimTank.SetInteger("faction", (int)faction);
-        AnimTurret.SetInteger("faction", (int)faction);
 
         Refuel();
       //  print(gm.splineContainer.EvaluatePosition(0.79f));
@@ -57,11 +56,11 @@ public class PlayerControll : RailCannon
     {
         bool keyPressed = Input.GetKey(KeyCode.Space);
 
-        if (keyPressed) DistanceTraveled += _acceleration * _acceleration * Time.deltaTime;
-        else DistanceTraveled -= _acceleration * 2f * Time.deltaTime;
-        DistanceTraveled = Mathf.Clamp(DistanceTraveled, rangeSpeed.x, rangeSpeed.y);
+        if (keyPressed) distanceTraveled += _acceleration * _acceleration * Time.deltaTime;
+        else distanceTraveled -= _acceleration * 2f * Time.deltaTime;
+        distanceTraveled = Mathf.Clamp(distanceTraveled, 0f, maxSpeed);
 
-        AnimTank.SetBool("isMoving", keyPressed);
+        animTank.SetBool("isMoving", keyPressed);
 
         base.Motion();
     }
@@ -70,22 +69,22 @@ public class PlayerControll : RailCannon
     {
         if (!hasFuelFeature) return;
         
-        _currentPos = MyTransform.position; 
+        _currentPos = myTransform.position; 
         _totalDistance += (_currentPos - _oldPos).magnitude;
         _oldPos = _currentPos;
         _fuel = (_fuelRemaining - _totalDistance) / _lengthOfCurve;
         gm.uimanager.FuelDisplay(_fuel * 0.5f);
-        if (_fuel < 0f) LevelDoneWin?.Invoke("Out of fuel!", gm.postavke.level, false);
+        if (_fuel < 0f) LevelDoneWin?.Invoke("Out of fuel!", false);
     }
 
     public void Refuel()
     {
-        _fuelRemaining = _lengthOfCurve * 2f + _totalDistance;
+        _fuelRemaining = _lengthOfCurve * 2f * fuelTankCapacity + _totalDistance;
     }
     IEnumerator AmmoPause()
     {
         yield return new WaitForSeconds(2f);
-        if (Ammo <= 0) LevelDoneWin?.Invoke("No more bullets!", gm.postavke.level, false);
+        if (Ammo <= 0) LevelDoneWin?.Invoke("No more bullets!", false);
     }
 
 }

@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: postavke
   m_EditorClassIdentifier: 
   level: 8
-  score: 0
+  score: 200

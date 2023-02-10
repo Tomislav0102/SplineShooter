@@ -4,23 +4,26 @@ using UnityEngine;
 using FirstCollection;
 using UnityEngine.Splines;
 
-public class RailCannon : EventManager
+public class RailCannon : EventManager, ITakeDamage, IActivation
 {
     internal GameManager gm;
     BoxCollider2D _boxCollider2D;
-    internal SplineAnimate SplineAnimate;
-    internal float DistanceTraveled;
+    internal SplineAnimate splineAnimate;
+    internal float distanceTraveled;
     Transform _parentTr; 
-    internal Transform MyTransform;
-    public Vector2 rangeSpeed = new Vector2(-10f, 10f);
+    internal Transform myTransform;
+    internal float maxSpeed;
+    public int maxHitPoints = 1;
+    int _hitpoints;
 
     Transform[] _bulletSpawnPoints = new Transform[3];
     LineRenderer[] _lrs = new LineRenderer[3];
     public Faction faction;
     ShootingMode _shootingMode;
+    [SerializeField] ProjectileType projectileType;
     SpriteRenderer[] _sprites = new SpriteRenderer[2];
-    internal Animator AnimTank, AnimTurret;
-    internal bool IsActive
+    internal Animator animTank, animTurret;
+    public bool IsActive
     {
         get => _isActive;
         set
@@ -49,12 +52,17 @@ public class RailCannon : EventManager
                     _lrs[2].enabled = _isActive;
                     break;
             }
-            AnimTank.enabled = _isActive;
-            AnimTurret.enabled = _isActive;
-            if (!_isActive && activeShield != null)
+            animTank.enabled = _isActive;
+            animTurret.enabled = _isActive;
+            if (!_isActive)
             {
-                activeShield.End();
-                activeShield = null;
+                if(activeShield != null)
+                {
+                    activeShield.TakeDamage(faction, 100000);
+                    activeShield = null;
+                }
+
+                gm.poolManager.ReturnActor(_parentTr);
             } 
         }
     }
@@ -63,64 +71,90 @@ public class RailCannon : EventManager
     RaycastHit2D _hit2D;
     [HideInInspector] public Shield activeShield;
 
-    public void Inicijalizacija(ShootingMode sm, float pocetnaPoz)
+    public void Inicijalizacija(ShootingMode sm, float pocetnaPoz, float speed, bool isboss)
     {
-        MyTransform = transform;
-        _parentTr = MyTransform.parent;
+        myTransform = transform;
+        _parentTr = myTransform.parent;
         _boxCollider2D = GetComponent<BoxCollider2D>();
         gm = GameManager.gm;
 
-        SplineAnimate = _parentTr.GetComponent<SplineAnimate>();
-        SplineAnimate.normalizedTime = pocetnaPoz;
+        splineAnimate = _parentTr.GetComponent<SplineAnimate>();
+        splineAnimate.normalizedTime = pocetnaPoz;
 
-        _sprites[0] = MyTransform.GetChild(0).GetComponent<SpriteRenderer>();
-        _sprites[1] = MyTransform.GetChild(0).GetChild(0).GetComponent<SpriteRenderer>();
-        AnimTank= _sprites[0].GetComponent<Animator>();
-        AnimTurret = _sprites[1].GetComponent<Animator>();
+        _sprites[0] = myTransform.GetChild(0).GetComponent<SpriteRenderer>();
+        _sprites[1] = myTransform.GetChild(1).GetChild(0).GetComponent<SpriteRenderer>();
+        animTank = _sprites[0].GetComponent<Animator>();
+        animTurret = _sprites[1].GetComponent<Animator>();
         for (int i = 0; i < 3; i++)
         {
-            _bulletSpawnPoints[i] = MyTransform.GetChild(1).GetChild(i);
+            _bulletSpawnPoints[i] = myTransform.GetChild(1).GetChild(1).GetChild(i);
             _lrs[i] = _bulletSpawnPoints[i].GetComponent<LineRenderer>();
-            _lrs[i].startColor = faction == Faction.Ally ? gm.colAlly : gm.colEnemy;
+            switch (projectileType)
+            {
+                case ProjectileType.Blue:
+                    _lrs[i].startColor = gm.colAlly;
+                    break;
+                case ProjectileType.Yellow:
+                    _lrs[i].startColor = gm.colEnemy;
+                    break;
+                case ProjectileType.Red:
+                    _lrs[i].startColor = gm.colRed;
+                    break;
+            }
+
+
         }
         _shootingMode = sm;
+        _hitpoints = maxHitPoints;
+        maxSpeed = speed;
+        if (GetComponent<EnemyBehaviour>() != null) GetComponent<EnemyBehaviour>().isBoss = isboss;
         IsActive = true;
     }
 
-    protected virtual void Shooting()
+    #region//OVERRIDES
+    protected override void CallEv_LevelDoneWin(string message, bool victory)
+    {
+        base.CallEv_LevelDoneWin(message, victory);
+        if (IsActive) IsActive = false;
+    }
+    #endregion
+    #region//VIRTUALS
+    protected virtual void Motion()
+    {
+        splineAnimate.normalizedTime += Time.deltaTime * distanceTraveled * 0.1f;
+        if (splineAnimate.normalizedTime > 1f)
+        {
+            if (gm.enemyAdditions != null && splineAnimate.splineContainer != gm.splineContainer)
+            {
+                splineAnimate.splineContainer = gm.splineContainer;
+                splineAnimate.normalizedTime = gm.enemyAdditions.insertionNorTime;
+            }
+            else splineAnimate.normalizedTime = 0f;
+        }
+
+    }
+    #endregion
+    #region//INTERNALS
+    internal void Shooting()
     {
         if (!IsActive) return;
-        AnimTurret.SetTrigger("fire");
+        animTurret.SetTrigger("fire");
 
         switch (_shootingMode)
         {
             case ShootingMode.OneBullet:
-                gm.poolManager.ShootBullet(faction, _bulletSpawnPoints[0]);
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[0]);
                 break;
             case ShootingMode.TwoBullets:
-                gm.poolManager.ShootBullet(faction, _bulletSpawnPoints[1]);
-                gm.poolManager.ShootBullet(faction, _bulletSpawnPoints[2]);
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[1]);
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[2]);
+                break;
+            case ShootingMode.ThreeBullets:
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[0]);
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[1]);
+                gm.poolManager.ShootBullet(faction, projectileType, _bulletSpawnPoints[2]);
                 break;
         }
-    }
-    protected virtual void Motion()
-    {
-        SplineAnimate.normalizedTime += Time.deltaTime * DistanceTraveled * 0.1f;
-        if (SplineAnimate.normalizedTime > 1f)
-        {
-            if (gm.enemyAdditions != null && SplineAnimate.splineContainer != gm.splineContainer)
-            {
-                gm.levelManager.AddEnemy(SplineAnimate, _shootingMode, gm.enemyAdditions.insertionNorTime);
-            }
-            else SplineAnimate.normalizedTime = 0f;
-        }
-
-    }
-
-    protected override void CallEv_LevelDoneWin(string message, int level, bool victory)
-    {
-        base.CallEv_LevelDoneWin(message, level, victory);
-        if (IsActive) IsActive = false;
     }
     internal void RaysMethod()
     {
@@ -135,6 +169,8 @@ public class RailCannon : EventManager
                 break;
         }
     }
+    #endregion
+
     void OneRay(int counterSpawnPoint)
     {
         _ray2D.origin = _bulletSpawnPoints[counterSpawnPoint].position;
@@ -159,14 +195,44 @@ public class RailCannon : EventManager
     private void OnTriggerEnter2D(Collider2D collision) //samo za cannon vs cannon i cannon vs shield, ne radi za metke
     {
         if (!IsActive) return;
-        if (collision.TryGetComponent(out RailCannon rc) && rc.IsActive)
+
+        if (collision.TryGetComponent(out Shield shield))
         {
-            LevelDoneWin?.Invoke("Don't touch the enemy!", gm.postavke.level, false);
+           if(shield.fact != faction) shield.TakeDamage(faction, 1);
         }
-        else if (collision.TryGetComponent(out Shield shield) && shield.fact != faction)
+        else if (collision.TryGetComponent(out ITakeDamage takeDamage))
         {
-            shield.End();
+            takeDamage.TakeDamage(faction, 1);
         }
+        //else if (collision.TryGetComponent(out RailCannon rc) && rc.IsActive)
+        //{
+        //    if (faction == Faction.Ally) TakeDamage(1, "Don't touch the enemy!");
+        //    else if (faction == Faction.Enemy && rc.faction == Faction.Enemy)
+        //    {
+        //        TakeDamage(1, "");
+        //        rc.TakeDamage(1, "");
+        //    }
+        //}
+
     }
 
+    public void TakeDamage(Faction attackerFaction, int dam)
+    {
+        _hitpoints -= dam;
+        switch (faction)
+        {
+            case Faction.Ally:
+                if (_hitpoints <= 0) LevelDoneWin?.Invoke(attackerFaction == Faction.Ally ? "You killed yourself!" : "Killed by enemy..." , false);
+                break;
+            case Faction.Enemy:
+                gm.uimanager.BossHealthDisplay((float)_hitpoints / (float)maxHitPoints);
+                if (_hitpoints <= 0)
+                {
+                    gm.uimanager.bossParent.SetActive(false);
+                    EnemyDestroyed?.Invoke(GetComponent<EnemyBehaviour>());
+                }
+                break;
+        }
+
+    }
 }

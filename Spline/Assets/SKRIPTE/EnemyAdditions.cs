@@ -5,16 +5,19 @@ using UnityEngine.Splines;
 using FirstCollection;
 using System;
 
-public class EnemyAdditions : EventManager
+public class EnemyAdditions : EventManager, IActivation
 {
     GameManager gm;
     SplineContainer _splineContainer;
     public float insertionNorTime;
-    const float CONST_SPAWNTIME = 6f;
+    const float CONST_SPAWNTIME = 8f;
     float _timerSpawn = Mathf.Infinity;
     bool _isActive;
 
-    [SerializeField] ShootingMode shootingMode;
+   // [SerializeField] ShootingMode shootingMode;
+    [SerializeField] SpawnedActors enemyToSpawn;
+
+    public bool IsActive { get => _isActive; set => _isActive = value; }
 
     private void Awake()
     {
@@ -25,37 +28,34 @@ public class EnemyAdditions : EventManager
 
     private void Update()
     {
-        if (!_isActive) return;
+        if (!IsActive) return;
 
         _timerSpawn += Time.deltaTime;
-        if (_timerSpawn > CONST_SPAWNTIME && gm.levelManager.enemyCount <= gm.maxEnemyCount )
+        if (_timerSpawn > CONST_SPAWNTIME)
         {
             _timerSpawn = 0f;
-            SpawnEnemy();
+            if (gm.poolManager.GetActor() == null) return;
+            SpawnedActors bufferClass = new SpawnedActors
+            {
+                sm = enemyToSpawn.sm,
+                startPosition = enemyToSpawn.startPosition,
+                facingOutward = enemyToSpawn.facingOutward,
+                boss = enemyToSpawn.boss,
+                maxSpeed= enemyToSpawn.maxSpeed
+            };
+            gm.levelManager.actors.Add(bufferClass);
+            bufferClass.AddEnemyOnMap(_splineContainer);
         }
-    }
-
-    private void SpawnEnemy()
-    {
-        SplineAnimate sa = Instantiate(gm.splineAnimatePrefab);
-        sa.splineContainer = _splineContainer;
-        sa.gameObject.SetActive(true);
-
-        RailCannon rc = sa.transform.GetChild(1).GetComponent<RailCannon>();
-        rc.transform.localEulerAngles = gm.levelManager.GetStartRotationEuler();
-        rc.gameObject.SetActive(true);
-        rc.Inicijalizacija(shootingMode, 0f);
-
     }
 
     protected override void CallEv_GameReady()
     {
         base.CallEv_GameReady();
-        _isActive = true;
+        IsActive = true;
     }
-    protected override void CallEv_LevelDoneWin(string st, int level, bool victory)
+    protected override void CallEv_LevelDoneWin(string st, bool victory)
     {
-        base.CallEv_LevelDoneWin(st, level, victory);
-        _isActive = false;
+        base.CallEv_LevelDoneWin(st, victory);
+        IsActive = false;
     }
 }
